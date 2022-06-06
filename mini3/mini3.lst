@@ -1,0 +1,899 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ; Ryan mark
+    2 00000000         ; mini project 3
+    3 00000000                 AREA             mini3, CODE, READONLY
+    4 00000000 00000010 
+                       rows    EQU              16          ; amount of rows in
+                                                             image
+    5 00000000 00000010 
+                       collum  EQU              16          ; amount of collums
+                                                             in  image
+    6 00000000 40000000 
+                       storage EQU              0x40000000  ;adress of the unfi
+                                                            ltered image
+    7 00000000 40000100 
+                       filter_image
+                               EQU              0x40000100  ;the adres of the i
+                                                            mage that is going 
+                                                            to be filtered
+    8 00000000 40000200 
+                       Histo1  EQU              0x40000200  ;stores data for th
+                                                            e histogram of unfi
+                                                            ltered image
+    9 00000000 40000300 
+                       Histo2  EQU              0x40000300  ; stores data for h
+                                                            istogram of filtere
+                                                            d image
+   10 00000000 40000400 
+                       intensity
+                               EQU              0x40000400  ; store the the lis
+                                                            t inntenitys found 
+                                                            in unfiltered image
+                                                            
+   11 00000000 40000500 
+                       filt_intensity
+                               EQU              0x40000500  ; store the list of
+                                                             intensity found in
+                                                             filtered immage
+   12 00000000         
+   13 00000000                 ENTRY
+   14 00000000 E3A02010        MOV              r2 ,#collum ;counter for column
+                                                            s
+   15 00000004 E3A03101        MOV              r3,#storage
+   16 00000008 00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 Image   DCD              row1,row2,row3,row4,row5,row6,r
+ow7,row8,row9,row10,row11,row12,row13,row14,row15,row16 
+                                                            ; array of all the 
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                                                            rows
+   17 00000048                 ALIGN
+   18 00000048         
+   19 00000048 E59F0274        LDR              r0,= Image  ;loads adress of th
+                                                            e 2d image
+   20 0000004C         
+   21 0000004C         ;----------------------2d map to 1d---------------------
+                       ----------------------------------------------    
+   22 0000004C E4904004 
+                       ONE_D   LDR              r4,[r0],#4
+   23 00000050 E3A01010        MOV              r1,#rows    ; counter for eleme
+                                                            nts with thin a row
+                                                            
+   24 00000054 E4D45001 
+                       ELEMENT LDRB             r5,[r4],#1
+   25 00000058 E4C35001        STRB             r5,[r3],#1
+   26 0000005C E2511001        SUBS             r1,r1,#1    ; counter goes down
+                                                            
+   27 00000060 1AFFFFFB        BNE              ELEMENT
+   28 00000064 E2522001        SUBS             r2,r2,#1
+   29 00000068 1AFFFFF7        BNE              ONE_D
+   30 0000006C         ;-----------------------1d to 2d map--------------------
+                       ------------------------------------------------------ 
+   31 0000006C E59F0254        LDR              r0,= filter_image ;image that w
+                                                            ill be filtered lat
+                                                            er on
+   32 00000070 E3A02010        MOV              r2, #collum ;total number of nu
+                                                            mber in the 16x16 m
+                                                            atrix  
+   33 00000074 E3A03101        MOV              r3,#storage
+   34 00000078         
+   35 00000078 E3A01C01        MOV              r1,#256     ; counter for eleme
+                                                            nts 
+   36 0000007C E4D34001 
+                       COPY    LDRB             r4,[r3],#1  ; 
+   37 00000080 E4C04001        STRB             r4,[r0],#1  ; create duplitcae 
+                                                            of input that will 
+                                                            be later fileter as
+                                                             the output
+   38 00000084 E2511001        SUBS             r1,r1,#1
+   39 00000088 1AFFFFFB        BNE              COPY
+   40 0000008C         ;----------------------------------------------------his
+                       togram for unfiltered image-----------------------------
+                       ----------------------------    
+   41 0000008C         
+   42 0000008C E59F0238        LDR              r0,=Histo1  ; will contain data
+                                                             for 1st histogram
+   43 00000090 E3A01000        MOV              r1,#0       ; counter used to c
+                                                            o mpare vaules in t
+                                                            he image
+   44 00000094 E3A04C01        MOV              r4,#256     ;hiogram loop count
+                                                            er
+   45 00000098 E59F7230        LDR              r7, =intensity
+   46 0000009C E3A02000 
+                       HISTO   MOV              r2, #0      ; counter for how m
+                                                            any of what pixel i
+                                                            ntesity is in the  
+                                                            image in
+   47 000000A0 E3A03C01        MOV              r3, #256    ;total number of el
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+                                                            ement in the 16x16 
+                                                            matrix
+   48 000000A4 E3A05101        LDR              r5, =storage ; get adress of th
+                                                            e one dimensional a
+                                                            rray used to compar
+                                                            e and also reset r5
+                                                             so it can be used 
+                                                            again
+   49 000000A8         ;----------------------------------------array number se
+                       arch---------------------- 
+   50 000000A8 E4D56001 
+                       search  LDRB             r6,[r5],#1
+   51 000000AC E1560001        CMP              r6,r1       ; compare the value
+                                                             of the element to 
+                                                            the number that is 
+                                                            being searched for
+   52 000000B0 02822001        ADDEQ            r2,r2,#1    ; add to counter if
+                                                             one of the element
+                                                             is equal to the nu
+                                                            mber being compared
+                                                             too
+   53 000000B4 E2533001        SUBS             r3,r3,#1
+   54 000000B8 1AFFFFFA        BNE              search
+   55 000000BC         ;-----------------------------end of array number search
+                        loop----------------
+   56 000000BC E3520000        CMP              r2,#0       ;check if r2  has a
+                                                            ny number of a spec
+                                                            ific pixel intensit
+                                                            y
+   57 000000C0 14C02001        STRBNE           r2 ,[r0],#1 ; stores counter of
+                                                             the number of a se
+                                                            pcific pixel intens
+                                                            ity if couter is no
+                                                            t zero
+   58 000000C4 E3520000        CMP              r2,#0
+   59 000000C8 14C71001        STRBNE           r1,[r7],#1  ; store the intensi
+                                                            ty that exists in t
+                                                            he image
+   60 000000CC E2811001        ADD              r1,r1,#1    ; set the next numb
+                                                            er that going to be
+                                                             searched and comap
+                                                            ered with
+   61 000000D0 E2544001        SUBS             r4,r4,#1    ; histogram counter
+                                                             goes down
+   62 000000D4 1AFFFFF0        BNE              HISTO
+   63 000000D8         ;-------------------------------------------------------
+                       ---image filter--------------------------------------
+   64 000000D8 E59F01E4        LDR              r0, =Image  ; the original imag
+                                                            e 
+   65 000000DC E59F11E4        LDR              r1, =filter_image ;  the image 
+                                                            that will be filter
+                                                            ed
+   66 000000E0 E2811011        ADD              r1,r1,#17   ; goes to the adres
+                                                            s row 2 colum 2 whu
+                                                            l will be the first
+                                                             pixel filtered
+   67 000000E4 E3A0C00E        MOV              r12,#14     ; counter for rows 
+                                                             when excluding row
+                                                             1 and 16
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+   68 000000E8         ;-------------------------------------------------------
+                         image filter loop-------------------------------------
+                       ---
+   69 000000E8         image_filter
+   70 000000E8 E5903004        LDR              r3,[r0,#4]  ;goes to row 2 by g
+                                                            etttin the adress o
+                                                            f row2 pre indexing
+                                                             used to not change
+                                                             r0
+   71 000000EC E5904008        LDR              r4,[r0,#8]  ;goes to row 3 by g
+                                                            etttin the adress o
+                                                            f row3 pre indexing
+                                                             used to not change
+                                                             r0
+   72 000000F0 E4902004        LDR              r2,[r0],#4  ; goes to row 1 by 
+                                                            getttin the adress 
+                                                            of row post indexin
+                                                            g used to  change r
+                                                            0 by adding 4 to ad
+                                                            ress to shift the s
+                                                            tarting poiint down
+                                                             by 1 row for the n
+                                                            ext cycle
+   73 000000F4         
+   74 000000F4 E3A0D00E        MOV              r13,#14     ; this will serve a
+                                                            s the collum counte
+                                                            r since we do not f
+                                                            ilter colum 1 or 16
+                                                            
+   75 000000F8         ; ----------------pixel calculation assuming 3x3 matrix 
+                       use for caluculation------------------------------    
+   76 000000F8 E3A09000 
+                       pixel_filter
+                               MOV              r9,#0       ; value for filter 
+                                                            of a pixel
+   77 000000FC E5D27001        LDRB             r7,[r2,#1]  ; row 1 collumn 2 v
+                                                            alue
+   78 00000100 E5D28002        LDRB             r8,[r2,#2]  ; row 1 collum 3 va
+                                                            lue a 
+   79 00000104 E4D26001        LDRB             r6,[r2],#1  ; row 1 collum 1 va
+                                                            lue  also adds one 
+                                                            to the adress so we
+                                                             go through all col
+                                                            lums
+   80 00000108         
+   81 00000108         ; we do not multiply (row1,collum1) since it being multi
+                       plied by one 
+   82 00000108 E1A07087        MOV              r7,r7,LSL #1 ; multiply (row1,c
+                                                            ollum 2) by 2
+   83 0000010C         ; we do not multiply (row1,collum3) since it being multi
+                       plied by one 
+   84 0000010C         
+   85 0000010C E0867007        ADD              r7 ,r6,r7   ;  (row1,collum1) +
+                                                             (row1,collum2)
+   86 00000110 E0878008        ADD              r8,r7,r8    ; (row1,collum1) + 
+                                                            (row1,collum2)+ (ro
+                                                            w1, collum3)
+   87 00000114 E0899008        ADD              r9,r9,r8    ;0 +(row1,collum1) 
+                                                            + (row1,collum2)+ (
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+                                                            row1, collum3)
+   88 00000118         
+   89 00000118 E5D37001        LDRB             r7,[r3,#1]  ; row 2 collumn 2 v
+                                                            alue
+   90 0000011C E5D38002        LDRB             r8,[r3,#2]  ; row 2 collum 3 va
+                                                            lue 
+   91 00000120 E4D36001        LDRB             r6,[r3],#1  ; row 2 collum 1 va
+                                                            lue  also adds one 
+                                                            to the adress so we
+                                                             go through all col
+                                                            lums
+   92 00000124         
+   93 00000124 E1A06086        MOV              r6,r6,LSL #1 ;multiply (row2,co
+                                                            lum1) by 2
+   94 00000128 E1A07107        MOV              r7,r7,LSL #2 ; multiply(row2,co
+                                                            llum2) by 4
+   95 0000012C E1A08088        MOV              r8,r8,LSL #1 ; multiply ((row2,
+                                                            collum2) by 2
+   96 00000130         
+   97 00000130 E0867007        ADD              r7 ,r6,r7   ;  (row2,collum1) +
+                                                             (row2,collum2)
+   98 00000134 E0878008        ADD              r8,r7,r8    ; (row2,collum1) + 
+                                                            (row2,collum2)+ (ro
+                                                            w2,collum3)
+   99 00000138 E0899008        ADD              r9,r9,r8    ; (row1,collum1) + 
+                                                            (row1,collum2)+ (ro
+                                                            w1, collum3)+(row2,
+                                                            collum1) + (row2,co
+                                                            llum2)+ (row2,collu
+                                                            m3)
+  100 0000013C         
+  101 0000013C E5D47001        LDRB             r7,[r4,#1]  ; row 3 collumn 2 v
+                                                            alue
+  102 00000140 E5D48002        LDRB             r8,[r4,#2]  ; row 3 collum 3 va
+                                                            lue a
+  103 00000144 E4D46001        LDRB             r6,[r4],#1  ; row 3 collum1 val
+                                                            ue  also adds one t
+                                                            o the adress so we 
+                                                            go through all coll
+                                                            ums
+  104 00000148         
+  105 00000148         ; we do not multiply (row3,collum1) since it being multi
+                       plied by one 
+  106 00000148 E1A07087        MOV              r7,r7,LSL #1 ; multiply by 2
+  107 0000014C         ; we do not multiply (row3,collum3) since it being multi
+                       plied by one 
+  108 0000014C         
+  109 0000014C E0867007        ADD              r7 ,r6,r7   ; (row3,collum1) + 
+                                                            (row3,collum2)
+  110 00000150 E0878008        ADD              r8,r7,r8    ;(row3,collum1) + (
+                                                            row3,collum2)+ (row
+                                                            3,collum3)
+  111 00000154 E0899008        ADD              r9,r9,r8    ;(row1,collum1) + (
+                                                            row1,collum2)+ (row
+                                                            1, collum3)+(row2,c
+                                                            ollum1) + (row2,col
+                                                            lum2)+ (row2,collum
+                                                            3) +(row3,collum1) 
+                                                            + (row3,collum2)+ (
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+                                                            row3,collum3)
+  112 00000158         
+  113 00000158 E1A09229        MOV              r9,r9,LSR #4 ; divide by 16 by 
+                                                            shifting binary for
+                                                            m by 4 to the right
+                                                            
+  114 0000015C E4C19001        STRB             r9,[r1],#1  ; store new filer v
+                                                            alue in designated 
+                                                            destination and shi
+                                                            ftes the pixel filt
+                                                            er by one
+  115 00000160 E25DD001        SUBS             r13,r13,#1
+  116 00000164 1AFFFFE3        BNE              pixel_filter
+  117 00000168         ;----------------------------------------------------end
+                        of pixel fliter loop------------------------
+  118 00000168 E2811002        ADD              r1,r1,#2    ; makes it so r1 ha
+                                                            s the adress of the
+                                                             next row while als
+                                                            o makeing sure it s
+                                                            tarts at collum 2 o
+                                                            f the next row
+  119 0000016C E25CC001        SUBS             r12,r12,#1  ; row counter goes 
+                                                            down by 1
+  120 00000170 1AFFFFDC        BNE              image_filter
+  121 00000174         ;-------------------------------------------------- end 
+                       of image filter loop--------------------------
+  122 00000174         
+  123 00000174         
+  124 00000174         ;-------------------------------------------------------
+                       -----histogram for filtered image---------------------- 
+                        
+  125 00000174         
+  126 00000174 E59F0158        LDR              r0,=Histo2  ; will contain data
+                                                             for 1st histogram
+  127 00000178 E3A01000        MOV              r1,#0       ; counter used to c
+                                                            o mpare vaules in t
+                                                            he image
+  128 0000017C E3A04C01        MOV              r4,#256     ;hiogram loop count
+                                                            er
+  129 00000180 E59F7150        LDR              r7, =filt_intensity
+  130 00000184 E3A02000 
+                       HISTO_FILTER
+                               MOV              r2, #0      ; counter for how m
+                                                            any of what pixel i
+                                                            ntesity is in the  
+                                                            image in
+  131 00000188 E3A03C01        MOV              r3, #256    ;total number of el
+                                                            ement in the 16x16 
+                                                            matrix
+  132 0000018C E59F5134        LDR              r5, =filter_image ; get adress 
+                                                            of the one dimensio
+                                                            nal array used to c
+                                                            ompare
+  133 00000190         ;----------------------------------------array number se
+                       arch---------------------- 
+  134 00000190 E4D56001 
+                       search_filter
+                               LDRB             r6,[r5],#1
+  135 00000194 E1560001        CMP              r6,r1
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+  136 00000198 02822001        ADDEQ            r2,r2,#1    ; add to counter if
+                                                             one of the element
+                                                             is equal to the nu
+                                                            mber being compared
+                                                             too
+  137 0000019C E2533001        SUBS             r3,r3,#1
+  138 000001A0 1AFFFFFA        BNE              search_filter
+  139 000001A4         ;-----------------------------end of array number search
+                        loop----------------
+  140 000001A4 E3520000        CMP              r2,#0       ;check if r2  has a
+                                                            ny number of a spec
+                                                            ific pixel intensit
+                                                            y
+  141 000001A8 14C02001        STRBNE           r2 ,[r0],#1 ; stores counter of
+                                                             the number of a se
+                                                            pcific pixel intens
+                                                            ity if couter is no
+                                                            t zero
+  142 000001AC E3520000        CMP              r2,#0
+  143 000001B0 14C71001        STRBNE           r1,[r7],#1  ; store the intensi
+                                                            ty that exists in t
+                                                            he image
+  144 000001B4 E2811001        ADD              r1,r1,#1    ; set the next numb
+                                                            er that going to be
+                                                             searched and comap
+                                                            ered with
+  145 000001B8 E2544001        SUBS             r4,r4,#1    ; histogram counter
+                                                             goes down
+  146 000001BC 1AFFFFF0        BNE              HISTO_FILTER
+  147 000001C0         
+  148 000001C0         
+  149 000001C0 EAFFFFFE 
+                       stop    B                stop
+  150 000001C4         ;the  image
+  151 000001C4 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+              FF FF FF 
+              FF       row1    DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+  152 000001D4 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+              FF FF FF 
+              FF       row2    DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+  153 000001E4 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+              FF FF FF 
+              FF       row3    DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+  154 000001F4 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+              FF FF FF 
+              FF       row4    DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+  155 00000204 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row5    DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  156 00000214 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row6    DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  157 00000224 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row7    DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  158 00000234 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row8    DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  159 00000244 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+              FF FF FF 
+              FF       row9    DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+  160 00000254 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+              FF FF FF 
+              FF       row10   DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+  161 00000264 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+              FF FF FF 
+              FF       row11   DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+  162 00000274 00 00 00 
+              00 FF FF 
+              FF FF 00 
+              00 00 00 
+              FF FF FF 
+              FF       row12   DCB              0,0,0,0,255,255,255,255,0,0,0,0
+,255,255,255,255
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+  163 00000284 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row13   DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  164 00000294 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row14   DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  165 000002A4 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row15   DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  166 000002B4 FF FF FF 
+              FF 00 00 
+              00 00 FF 
+              FF FF FF 
+              00 00 00 
+              00       row16   DCB              255,255,255,255,0,0,0,0,255,255
+,255,255,0,0,0,0
+  167 000002C4         
+  168 000002C4         
+  169 000002C4                 END
+              00000000 
+              40000100 
+              40000200 
+              40000400 
+              40000300 
+              40000500 
+Command Line: --debug --xref --apcs=interwork --depend=.\mini3.d -o.\mini3.o -I
+C:\Keil\ARM\RV31\INC -IC:\Keil\ARM\CMSIS\Include -IC:\Keil\ARM\Inc\Philips --pr
+edefine="__EVAL SETA 1" --list=.\mini3.lst mini3.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+COPY 0000007C
+
+Symbol: COPY
+   Definitions
+      At line 36 in file mini3.s
+   Uses
+      At line 39 in file mini3.s
+Comment: COPY used once
+ELEMENT 00000054
+
+Symbol: ELEMENT
+   Definitions
+      At line 24 in file mini3.s
+   Uses
+      At line 27 in file mini3.s
+Comment: ELEMENT used once
+HISTO 0000009C
+
+Symbol: HISTO
+   Definitions
+      At line 46 in file mini3.s
+   Uses
+      At line 62 in file mini3.s
+Comment: HISTO used once
+HISTO_FILTER 00000184
+
+Symbol: HISTO_FILTER
+   Definitions
+      At line 130 in file mini3.s
+   Uses
+      At line 146 in file mini3.s
+Comment: HISTO_FILTER used once
+Image 00000008
+
+Symbol: Image
+   Definitions
+      At line 16 in file mini3.s
+   Uses
+      At line 19 in file mini3.s
+      At line 64 in file mini3.s
+
+ONE_D 0000004C
+
+Symbol: ONE_D
+   Definitions
+      At line 22 in file mini3.s
+   Uses
+      At line 29 in file mini3.s
+Comment: ONE_D used once
+image_filter 000000E8
+
+Symbol: image_filter
+   Definitions
+      At line 69 in file mini3.s
+   Uses
+      At line 120 in file mini3.s
+Comment: image_filter used once
+mini3 00000000
+
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+Symbol: mini3
+   Definitions
+      At line 3 in file mini3.s
+   Uses
+      None
+Comment: mini3 unused
+pixel_filter 000000F8
+
+Symbol: pixel_filter
+   Definitions
+      At line 76 in file mini3.s
+   Uses
+      At line 116 in file mini3.s
+Comment: pixel_filter used once
+row1 000001C4
+
+Symbol: row1
+   Definitions
+      At line 151 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row1 used once
+row10 00000254
+
+Symbol: row10
+   Definitions
+      At line 160 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row10 used once
+row11 00000264
+
+Symbol: row11
+   Definitions
+      At line 161 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row11 used once
+row12 00000274
+
+Symbol: row12
+   Definitions
+      At line 162 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row12 used once
+row13 00000284
+
+Symbol: row13
+   Definitions
+      At line 163 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row13 used once
+row14 00000294
+
+Symbol: row14
+   Definitions
+      At line 164 in file mini3.s
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Relocatable symbols
+
+   Uses
+      At line 16 in file mini3.s
+Comment: row14 used once
+row15 000002A4
+
+Symbol: row15
+   Definitions
+      At line 165 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row15 used once
+row16 000002B4
+
+Symbol: row16
+   Definitions
+      At line 166 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row16 used once
+row2 000001D4
+
+Symbol: row2
+   Definitions
+      At line 152 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row2 used once
+row3 000001E4
+
+Symbol: row3
+   Definitions
+      At line 153 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row3 used once
+row4 000001F4
+
+Symbol: row4
+   Definitions
+      At line 154 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row4 used once
+row5 00000204
+
+Symbol: row5
+   Definitions
+      At line 155 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row5 used once
+row6 00000214
+
+Symbol: row6
+   Definitions
+      At line 156 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row6 used once
+
+
+
+ARM Macro Assembler    Page 4 Alphabetic symbol ordering
+Relocatable symbols
+
+row7 00000224
+
+Symbol: row7
+   Definitions
+      At line 157 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row7 used once
+row8 00000234
+
+Symbol: row8
+   Definitions
+      At line 158 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row8 used once
+row9 00000244
+
+Symbol: row9
+   Definitions
+      At line 159 in file mini3.s
+   Uses
+      At line 16 in file mini3.s
+Comment: row9 used once
+search 000000A8
+
+Symbol: search
+   Definitions
+      At line 50 in file mini3.s
+   Uses
+      At line 54 in file mini3.s
+Comment: search used once
+search_filter 00000190
+
+Symbol: search_filter
+   Definitions
+      At line 134 in file mini3.s
+   Uses
+      At line 138 in file mini3.s
+Comment: search_filter used once
+stop 000001C0
+
+Symbol: stop
+   Definitions
+      At line 149 in file mini3.s
+   Uses
+      At line 149 in file mini3.s
+Comment: stop used once
+28 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+Histo1 40000200
+
+Symbol: Histo1
+   Definitions
+      At line 8 in file mini3.s
+   Uses
+      At line 42 in file mini3.s
+Comment: Histo1 used once
+Histo2 40000300
+
+Symbol: Histo2
+   Definitions
+      At line 9 in file mini3.s
+   Uses
+      At line 126 in file mini3.s
+Comment: Histo2 used once
+collum 00000010
+
+Symbol: collum
+   Definitions
+      At line 5 in file mini3.s
+   Uses
+      At line 14 in file mini3.s
+      At line 32 in file mini3.s
+
+filt_intensity 40000500
+
+Symbol: filt_intensity
+   Definitions
+      At line 11 in file mini3.s
+   Uses
+      At line 129 in file mini3.s
+Comment: filt_intensity used once
+filter_image 40000100
+
+Symbol: filter_image
+   Definitions
+      At line 7 in file mini3.s
+   Uses
+      At line 31 in file mini3.s
+      At line 65 in file mini3.s
+      At line 132 in file mini3.s
+
+intensity 40000400
+
+Symbol: intensity
+   Definitions
+      At line 10 in file mini3.s
+   Uses
+      At line 45 in file mini3.s
+Comment: intensity used once
+rows 00000010
+
+Symbol: rows
+   Definitions
+      At line 4 in file mini3.s
+   Uses
+      At line 23 in file mini3.s
+Comment: rows used once
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Absolute symbols
+
+storage 40000000
+
+Symbol: storage
+   Definitions
+      At line 6 in file mini3.s
+   Uses
+      At line 15 in file mini3.s
+      At line 33 in file mini3.s
+      At line 48 in file mini3.s
+
+8 symbols
+369 symbols in table
